@@ -60,7 +60,7 @@ current_url = "https://api.weatherlink.com/v2/current/{}?api-key={}&t={}&api-sig
 
 with urllib.request.urlopen(current_url) as url:
     data = json.loads(url.read().decode())
-    print(json.dumps(data, indent=4, sort_keys=False))
+    # print(json.dumps(data, indent=4, sort_keys=False))
 
 # historic data
 print("-"*50)

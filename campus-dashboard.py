@@ -149,6 +149,6 @@ while True:
     st.session_state['energy_usage'] = energy_usage
 
     print(st.session_state)
-    time.sleep(5*3600)
+    time.sleep(1 * 60 * 1000)
     st.rerun()
 
