@@ -2,6 +2,7 @@ import pandas as pd
 import requests
 import configparser
 from datetime import datetime, timedelta, UTC
+import streamlit as st
 
 # parse the configuration file for channel ids and read api keys
 def config_parser(file='energy.ini'):
@@ -17,6 +18,7 @@ def config_parser(file='energy.ini'):
 
     return config_dict
 
+# @st.cache(allow_output_mutation=True)
 def get_last_n_readings(id, key, n=1):
     url = f"https://api.thingspeak.com/channels/{id}/feeds.json?api_key={key}&results={n}"
 
@@ -32,6 +34,7 @@ def get_last_n_readings(id, key, n=1):
 
     return df
 
+# @st.cache(allow_output_mutation=True)
 def get_reading_for_days(id, key, num_days=7):
     # Calculate the date num days ago from today
     num_days_ago = datetime.now(UTC) - timedelta(days=num_days)

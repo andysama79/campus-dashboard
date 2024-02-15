@@ -1,84 +1,92 @@
-import pandas as pd
-import datetime
-import time
-import tzlocal
-import matplotlib.pyplot as plt
+import time  # to simulate a real time data, time loop
 
-import hashlib
-import hmac
-import time
-import urllib.request
-import json
+import numpy as np  # np mean, np random
+import pandas as pd  # read csv, df manipulation
+import plotly.express as px  # interactive charts
+import streamlit as st  # 🎈 data web app development
 
-APIKeyv2 = "aqfzuj9ub5iodlrdwvhy0rvqb0ce62sd"
-APISecret = "aujta0m5z2qiczvoxu49vc8umumkn2ac"
+st.set_page_config(
+    page_title="Real-Time Data Science Dashboard",
+    page_icon="✅",
+    layout="wide",
+)
 
-# get station id
-print("-"*50)
-print("\n\nStation ID")
-t = int(time.time())
+# read csv from a github repo
+dataset_url = "https://raw.githubusercontent.com/Lexie88rus/bank-marketing-analysis/master/bank.csv"
 
-message_to_hash = "api-key{}t{}"\
-                      .format(APIKeyv2, t)
+# read csv from a URL
+@st.cache_data
+def get_data() -> pd.DataFrame:
+    return pd.read_csv(dataset_url)
 
-apiSignature = hmac.new(
-    APISecret.encode('utf-8'),
-    message_to_hash.encode('utf-8'),
-    hashlib.sha256
-).hexdigest()
+df = get_data()
 
-stations_url = "https://api.weatherlink.com/v2/stations?api-key={}&t={}&api-signature={}"\
-                .format(APIKeyv2, t, apiSignature)
-#print(stations_url,'\n')
+# dashboard title
+st.title("Real-Time / Live Data Science Dashboard")
 
-with urllib.request.urlopen(stations_url) as url:
-    data = json.loads(url.read().decode())
-    #print(json.dumps(data, indent=4, sort_keys=False))
+# top-level filters
+job_filter = st.selectbox("Select the Job", pd.unique(df["job"]))
 
-# in my case, there is only one station
-# modifications are required if more than one
-station_id   = data['stations'][0]['station_id']
-station_name = data['stations'][0]['station_name']
+# creating a single-element container
+placeholder = st.empty()
 
-print("Station ID: ", station_id)
-print("Station_name: ", station_name)
+# dataframe filter
+df = df[df["job"] == job_filter]
 
-# current data
-print("-"*50)
-print("\n\nCurrent data")
-message_to_hash = "api-key{}station-id{}t{}"\
-                      .format(APIKeyv2, station_id, t)
+# near real-time / live feed simulation
+for seconds in range(200):
 
-apiSignature = hmac.new(
-      APISecret.encode('utf-8'),
-      message_to_hash.encode('utf-8'),
-      hashlib.sha256
-    ).hexdigest()
+    df["age_new"] = df["age"] * np.random.choice(range(1, 5))
+    df["balance_new"] = df["balance"] * np.random.choice(range(1, 5))
 
-current_url = "https://api.weatherlink.com/v2/current/{}?api-key={}&t={}&api-signature={}"\
-                  .format(station_id, APIKeyv2, t, apiSignature)
+    # creating KPIs
+    avg_age = np.mean(df["age_new"])
 
-with urllib.request.urlopen(current_url) as url:
-    data = json.loads(url.read().decode())
-    # print(json.dumps(data, indent=4, sort_keys=False))
+    count_married = int(
+        df[(df["marital"] == "married")]["marital"].count()
+        + np.random.choice(range(1, 30))
+    )
 
-# historic data
-print("-"*50)
-print("\n\nHistoric data")
-period = 24
-end_timestamp   = int(time.time())
-start_timestamp = end_timestamp - period*3600 # maximum: 24 hours
-message_to_hash = "api-key{}end-timestamp{}start-timestamp{}station-id{}t{}"\
-                    .format(APIKeyv2, end_timestamp, start_timestamp, station_id, t)
-apiSignature = hmac.new(
-    APISecret.encode('utf-8'),
-    message_to_hash.encode('utf-8'),
-    hashlib.sha256
-    ).hexdigest()
+    balance = np.mean(df["balance_new"])
 
-historic_url = "https://api.weatherlink.com/v2/historic/{}?api-key={}&t={}&start-timestamp={}&end-timestamp={}&api-signature={}"\
-                .format(station_id, APIKeyv2, t, start_timestamp, end_timestamp, apiSignature)
+    with placeholder.container():
 
-with urllib.request.urlopen(historic_url) as url:
-    data = json.loads(url.read().decode())
-    print(json.dumps(data, indent=4, sort_keys=False))
+        # create three columns
+        kpi1, kpi2, kpi3 = st.columns(3)
+
+        # fill in those three columns with respective metrics or KPIs
+        kpi1.metric(
+            label="Age ⏳",
+            value=round(avg_age),
+            delta=round(avg_age) - 10,
+        )
+        
+        kpi2.metric(
+            label="Married Count 💍",
+            value=int(count_married),
+            delta=-10 + count_married,
+        )
+        
+        kpi3.metric(
+            label="A/C Balance ＄",
+            value=f"$ {round(balance,2)} ",
+            delta=-round(balance / count_married) * 100,
+        )
+
+        # create two columns for charts
+        fig_col1, fig_col2 = st.columns(2)
+        with fig_col1:
+            st.markdown("### First Chart")
+            fig = px.density_heatmap(
+                data_frame=df, y="age_new", x="marital"
+            )
+            st.write(fig)
+            
+        with fig_col2:
+            st.markdown("### Second Chart")
+            fig2 = px.histogram(data_frame=df, x="age_new")
+            st.write(fig2)
+
+        st.markdown("### Detailed Data View")
+        st.dataframe(df)
+        time.sleep(1)

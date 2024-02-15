@@ -10,6 +10,7 @@ import hmac
 import time
 import urllib.request
 import json
+# import streamlit as st
 
 def config_parser(file='weather.ini'):
     parser = configparser.ConfigParser()
@@ -127,9 +128,15 @@ def get_df_for_timeperiod(api_key, api_secret, period=24, items=["wind_speed_hi"
 
     df = pd.concat(df_list, ignore_index=True)
 
+    # convert temperature values to celsius
+    df['temp_avg'] = (df['temp_avg'] - 32) * 5.0/9.0
+    df['temp_lo'] = (df['temp_lo'] - 32) * 5.0/9.0
+    df['temp_hi'] = (df['temp_hi'] - 32) * 5.0/9.0
+
     local_timezone = tzlocal.get_localzone()
     df['date'] = pd.to_datetime(df.ts, unit='s', utc=True).dt.tz_convert(local_timezone).dt.tz_localize(None)
     df.replace('', pd.NA)
+    # df.dropna(inplace=True)
     df.set_index('date', inplace=True)
     df.sort_index(inplace=True)
 
@@ -141,7 +148,7 @@ def main():
     config_dict = config_parser()
     print(config_dict)
     print(get_current_data(api_key=config_dict['cce-plaksha']['apikeyv2'], api_secret=config_dict['cce-plaksha']['apisecret']))
-    df = get_df_for_timeperiod(api_key=config_dict['cce-plaksha']['apikeyv2'], api_secret=config_dict['cce-plaksha']['apisecret'])
+    df = get_df_for_timeperiod(api_key=config_dict['cce-plaksha']['apikeyv2'], api_secret=config_dict['cce-plaksha']['apisecret'], period=48)
     print(df)
 
 if __name__ == "__main__":
